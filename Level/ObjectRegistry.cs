@@ -262,6 +262,18 @@ internal static class ObjectRegistry
                 player.CurrentMode = GameMode.Ship;
             }
         });
+        Register(23, new ObjectData
+        {
+            TextureKey = "portal_ball",
+            Type = InteractionType.Touchable,
+            DefaultColor = Vector4.One,
+            HitboxOffset = new Vector2(12f, 0f),
+            HitboxSize = new Vector2(24f, 96f),
+            Scale = new Vector2(1, 3),
+            OnTrigger = (player, rotation) => {
+                player.CurrentMode = GameMode.Ball;
+            }
+        });
     }
 
     public static void Register(int id, ObjectData data) => _registry[id] = data;

@@ -21,7 +21,7 @@ internal class MainGame
     private Box2 _lastSpikeHitbox; // Для отладочной подсветки шипа, об который убились
     private Box2 _lastPlayerHitbox;
 
-
+    private int _lastActivatedOrbBlockIndex = -1;
     public MainGame()
     {
         // Спавним игрока на высоте 100 пикселей от низа экрана
@@ -215,9 +215,9 @@ internal class MainGame
         bool stoodOnObject = false;
         bool launchedThisFrame = false;
 
-        // 1. Проверка прохождения уровня и расчет динамической зоны смерти сверху
+        // 1. Проверка прохождения уровня
         float maxBlockX = 0f;
-        float maxBlockY = 0f; // Для определения самой высокой точки уровня
+        float maxBlockY = 0f;
 
         if (_currentLevel.blocks != null && _currentLevel.blocks.Length > 0)
         {
@@ -244,6 +244,19 @@ internal class MainGame
             return;
         }
 
+        // Читаем ввод с клавиатуры для механики Buffer Click
+        var keyboard = MainApp.App.KeyboardState;
+        bool isInputHeld = keyboard.IsKeyDown(Keys.Space) || keyboard.IsKeyDown(Keys.Up);
+
+        // Сбрасываем кэш орба, если игрок полностью отпустил кнопку прыжка
+        if (!isInputHeld)
+        {
+            _lastActivatedOrbBlockIndex = -1;
+        }
+
+        // Локальный хелпер для генерации уникального идентификатора ячейки (чтобы отличать орбы)
+        int GetBlockHashCode(int x, int y) => x * 73856093 ^ y * 19349663;
+
         foreach (var block in _currentLevel.blocks)
         {
             if (!Level.ObjectRegistry.TryGet(block.Id, out var data)) continue;
@@ -253,13 +266,14 @@ internal class MainGame
             Vector2 hitOffset = data.HitboxOffset;
             Vector2 hitSize = data.HitboxSize;
 
-            bool useFullBox = (data.Type == InteractionType.Hazard || data.Type == InteractionType.Touchable || data.Type == InteractionType.Interactable);
-            Box2 targetBox = useFullBox ? playerFullBox : playerBlockBox;
+            Box2 targetBox = (data.Type == InteractionType.Hazard || data.Type == InteractionType.Interactable || data.Type == InteractionType.Touchable) ? playerFullBox : playerBlockBox;
 
             bool hit = Box2Extensions.IntersectsRotated(targetBox, objPos, new Vector2(48f, 48f), block.Rotation, hitOffset, hitSize);
 
             if (hit)
             {
+                int blockUID = GetBlockHashCode(block.X, block.Y);
+
                 switch (data.Type)
                 {
                     case InteractionType.Hazard:
@@ -267,28 +281,26 @@ internal class MainGame
                         _lastSpikeHitbox = Box2Extensions.GetAbsoluteOBBBounds(objPos, block.Rotation, hitOffset, hitSize);
                         TriggerDeath(playerFullBox, _lastSpikeHitbox);
                         return;
+
                     case InteractionType.Solid:
                         if (launchedThisFrame) break;
 
-                        // Вычисляем мировые границы повернутого блока
                         Box2 absoluteBounds = Box2Extensions.GetAbsoluteOBBBounds(objPos, block.Rotation, hitOffset, hitSize);
                         float blockTop = absoluteBounds.Max.Y;
                         float blockBottom = absoluteBounds.Min.Y;
 
-                        // --- МОДЕРНИЗИРОВАННАЯ ФИЗИКА КОРАБЛЯ ДЛЯ БЛОКОВ (СКОЛЬЖЕНИЕ) ---
-                        if (_player.CurrentMode == GameMode.Ship)
+                        if (_player.CurrentMode == GameMode.Ship || _player.CurrentMode == GameMode.Ball)
                         {
-                            // Проверяем, находится ли игрок преимущественно выше или ниже блока, чтобы разрешить скольжение
                             bool isAbove = (_player.Position.Y - _player.Velocity.Y * deltaTime) >= blockTop - 12f;
                             bool isBelow = (_player.Position.Y + _player.Size.Y - _player.Velocity.Y * deltaTime) <= blockBottom + 12f;
 
-                            if (isAbove && _player.Velocity.Y <= 0.01f) // Скольжение по верху блока
+                            if (isAbove && _player.Velocity.Y <= 0.01f && _player.GravitySign > 0)
                             {
                                 _player.Position.Y = blockTop;
                                 _player.Velocity.Y = 0;
                                 stoodOnObject = true;
                             }
-                            else if (isBelow && _player.Velocity.Y >= -0.01f) // Скольжение под потолком блока (изнутри)
+                            else if (isBelow && _player.Velocity.Y >= -0.01f && _player.GravitySign < 0)
                             {
                                 _player.Position.Y = blockBottom - _player.Size.Y;
                                 _player.Velocity.Y = 0;
@@ -296,16 +308,19 @@ internal class MainGame
                             }
                             else
                             {
-                                // Если корабль врезался ровно в боковую грань (стену) — это смерть
-                                _lastPlayerHitbox = playerFullBox;
-                                _lastSpikeHitbox = absoluteBounds;
-                                TriggerDeath(playerFullBox, _lastSpikeHitbox);
-                                return;
+                                bool movingIntoWall = (_player.GravitySign > 0 && !isAbove) || (_player.GravitySign < 0 && !isBelow);
+                                if (movingIntoWall)
+                                {
+                                    _lastPlayerHitbox = playerFullBox;
+                                    _lastSpikeHitbox = absoluteBounds;
+                                    TriggerDeath(playerFullBox, _lastSpikeHitbox);
+                                    return;
+                                }
                             }
                         }
-                        else // --- КЛАССИЧЕСКАЯ ФИЗИКА КУБА (ОСТАЁТСЯ ПРЕЖНЕЙ) ---
+                        else // --- КЛАССИЧЕСКАЯ ФИЗИКА КУБА С БУФЕРИЗАЦИЕЙ НА ЗЕМЛЕ ---
                         {
-                            if (_player.GravitySign > 0) // Обычная гравитация куба
+                            if (_player.GravitySign > 0)
                             {
                                 if (_player.Velocity.Y <= 0.001f && (_player.Position.Y - _player.Velocity.Y * 0.016f) >= blockTop - 8f)
                                 {
@@ -320,7 +335,7 @@ internal class MainGame
                                     return;
                                 }
                             }
-                            else // Инвертированная гравитация куба
+                            else
                             {
                                 if (_player.Velocity.Y >= -0.001f && (_player.Position.Y + _player.Size.Y - _player.Velocity.Y * 0.016f) <= blockBottom + 8f)
                                 {
@@ -338,20 +353,27 @@ internal class MainGame
                         }
                         break;
 
-
                     case InteractionType.Touchable:
                         data.OnTrigger?.Invoke(_player, block.Rotation);
                         launchedThisFrame = true;
                         break;
 
                     case InteractionType.Interactable:
-                        var keyboard = MainApp.App.KeyboardState;
-                        if (keyboard.IsKeyPressed(Keys.Space) || keyboard.IsKeyPressed(Keys.Up))
+                        if (isInputHeld)
                         {
-                            data.OnTrigger?.Invoke(_player, block.Rotation);
-                            launchedThisFrame = true;
+                            bool isFreshKeyPress = keyboard.IsKeyPressed(Keys.Space) || keyboard.IsKeyPressed(Keys.Up);
+
+                            if (isFreshKeyPress || !_player.HasBufferFired)
+                            {
+                                _player.HasBufferFired = true;
+                                _lastActivatedOrbBlockIndex = blockUID; 
+
+                                data.OnTrigger?.Invoke(_player, block.Rotation);
+                                launchedThisFrame = true;
+                            }
                         }
                         break;
+
                 }
             }
         }
@@ -367,12 +389,12 @@ internal class MainGame
         if (_player.GravitySign > 0 && _player.Position.Y <= floorY)
         {
             _player.Position.Y = floorY;
+            if (_player.CurrentMode == GameMode.Ship || _player.CurrentMode == GameMode.Ball) _player.Velocity.Y = 0;
             stoodOnObject = true;
         }
+
         _player.SetGrounded(stoodOnObject);
     }
-
-
 
 
     private void TriggerDeath(Box2 playerBox, Box2 obstacleBox)

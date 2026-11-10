@@ -143,7 +143,7 @@ internal class LevelEditor
             bool isSelected = _selectedBlocks.Any(sb => sb.X == b.X && sb.Y == b.Y);
             Vector4 color = isSelected ? new Vector4(1f, 1f, 0.2f, 1f) : Vector4.One;
 
-            BatchRenderer.DrawQuad(new Vector2(b.X * GridSize, b.Y * GridSize), new Vector2(GridSize), uv, color, texId, b.Rotation);
+            BatchRenderer.DrawQuad(new Vector2(b.X * GridSize, b.Y * GridSize), new Vector2(GridSize) * data.Scale, uv, color, texId, b.Rotation);
         }
 
         if (_isSelecting)

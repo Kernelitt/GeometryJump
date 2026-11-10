@@ -20,36 +20,6 @@ internal class MainApp : GameWindow
     private LevelEditor _editor;
     private MainMenu _menu;
     private bool _isInGameplay = false;
-    internal static readonly string[] texturePaths = [
-    "Assets/Textures/block.png",
-    "Assets/Textures/spike.png",
-    "Assets/Textures/block1_1.png",
-    "Assets/Textures/block1_2.png",
-    "Assets/Textures/block1_3.png",
-    "Assets/Textures/block1_4.png",
-    "Assets/Textures/block1_5.png",
-    "Assets/Textures/block1_6.png",
-    "Assets/Textures/block1_7.png",
-    "Assets/Textures/spike1_2.png",
-    "Assets/Textures/slab1_1.png",
-    "Assets/Textures/orb1.png",
-    "Assets/Textures/orb2.png",
-    "Assets/Textures/orb3.png",
-    "Assets/Textures/orb4.png",
-    "Assets/Textures/orb5.png",
-    "Assets/Textures/pad1.png",
-    "Assets/Textures/pad2.png",
-    "Assets/Textures/pad3.png",
-    "Assets/Textures/pad4.png",
-    "Assets/Textures/portal_cube.png",
-    "Assets/Textures/portal_ship.png",
-    "Assets/Textures/icon_1_1.png",
-    "Assets/Textures/icon_1_2.png",
-    "Assets/Textures/icon_2_1.png",
-    "Assets/Textures/icon_2_2.png",
-    "Assets/Textures/ship_1_1.png",
-    "Assets/Textures/ship_1_2.png" 
-];
 
     public MainApp(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
         : base(gameWindowSettings, nativeWindowSettings) { }
@@ -71,8 +41,9 @@ internal class MainApp : GameWindow
         {
             _profiler.RenderDebugOverlay(this);
         };
-        AssetManager.LoadTextureAtlas(texturePaths);
-
+        SkinSet.LoadConfig();
+        AssetManager.LoadTextureAtlas("Assets\\Textures\\");
+        SkinSet.DiscoverAvailableSkins();
 
         BatchRenderer.Initialize();
 

@@ -142,93 +142,110 @@ internal class MainMenu
             if (ImGui.TreeNode("Icon Kit & Character Customization"))
             {
                 IntPtr openGlTexId = (IntPtr)AssetManager.TextureAtlasId;
+                bool configChanged = false;
 
                 if (ImGui.BeginTabBar("GarageTabs"))
                 {
+                    // --- ВКЛАДКА КУБОВ ---
                     if (ImGui.BeginTabItem("Cubes"))
                     {
-                        ImGui.Text("Select Cube Skin (Base + Detail Layer):");
-                        ImGui.Separator();
-
-                        for (int i = 1; i <= 2; i++)
+                        ImGui.Text("Select Cube Skin:");
+                        foreach (int id in SkinSet.AvailableCubes)
                         {
-                            string baseKey = $"icon_{i}_1";
-                            string extraKey = $"icon_{i}_2";
-
-                            // Получаем точные UV из атласа
-                            Vector4 uv1 = AssetManager.TextureRegions.TryGetValue(baseKey, out var u1) ? u1 : Vector4.Zero;
-                            Vector4 uv2 = AssetManager.TextureRegions.TryGetValue(extraKey, out var u2) ? u2 : Vector4.Zero;
-
-                            ImGui.PushID($"cube_btn_{i}");
-
+                            ImGui.PushID($"cube_uid_{id}");
                             System.Numerics.Vector2 screenPos = ImGui.GetCursorScreenPos();
+
                             if (ImGui.Button("##blank", new System.Numerics.Vector2(48, 48)))
                             {
-                                SkinSet.Current.SelectedCubeId = i;
+                                SkinSet.Current.SelectedCubeId = id;
+                                configChanged = true;
                             }
 
-                            var drawList = ImGui.GetWindowDrawList();
-                            System.Numerics.Vector2 pMin = screenPos;
-                            System.Numerics.Vector2 pMax = new(screenPos.X + 48, screenPos.Y + 48);
+                            Vector4 uv1 = AssetManager.TextureRegions.TryGetValue($"icon_{id}_1", out var u1) ? u1 : Vector4.Zero;
+                            Vector4 uv2 = AssetManager.TextureRegions.TryGetValue($"icon_{id}_2", out var u2) ? u2 : Vector4.Zero;
 
+                            var drawList = ImGui.GetWindowDrawList();
                             uint c1 = ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(SkinSet.Current.Color1.X, SkinSet.Current.Color1.Y, SkinSet.Current.Color1.Z, SkinSet.Current.Color1.W));
                             uint c2 = ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(SkinSet.Current.Color2.X, SkinSet.Current.Color2.Y, SkinSet.Current.Color2.Z, SkinSet.Current.Color2.W));
 
-                            // Слой 1: Основа (Цвет 1)
-                            drawList.AddImage(openGlTexId, pMin, pMax, new System.Numerics.Vector2(uv1.X, uv1.Y), new System.Numerics.Vector2(uv1.Z, uv1.W), c1);
-                            // Слой 2: Узор (Цвет 2)
-                            drawList.AddImage(openGlTexId, pMin, pMax, new System.Numerics.Vector2(uv2.X, uv2.Y), new System.Numerics.Vector2(uv2.Z, uv2.W), c2);
+                            drawList.AddImage(openGlTexId, screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), new System.Numerics.Vector2(uv1.X, uv1.Y), new System.Numerics.Vector2(uv1.Z, uv1.W), c1);
+                            drawList.AddImage(openGlTexId, screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), new System.Numerics.Vector2(uv2.X, uv2.Y), new System.Numerics.Vector2(uv2.Z, uv2.W), c2);
 
-                            if (SkinSet.Current.SelectedCubeId == i)
-                            {
-                                drawList.AddRect(pMin, pMax, ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(0.2f, 1f, 0.2f, 1f)), 0f, ImDrawFlags.None, 2f);
-                            }
+                            if (SkinSet.Current.SelectedCubeId == id)
+                                drawList.AddRect(screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(0.2f, 1f, 0.2f, 1f)), 0f, ImDrawFlags.None, 2f);
 
                             ImGui.PopID();
-                            if (i % 5 != 0) ImGui.SameLine();
+                            ImGui.SameLine();
                         }
                         ImGui.NewLine();
                         ImGui.EndTabItem();
                     }
 
+                    // --- ВКЛАДКА КОРАБЛЕЙ ---
                     if (ImGui.BeginTabItem("Ships"))
                     {
                         ImGui.Text("Select Ship Skin:");
-                        ImGui.Separator();
-
-                        for (int i = 1; i <= 1; i++) 
+                        foreach (int id in SkinSet.AvailableShips)
                         {
-                            string baseKey = $"ship_{i}_1";
-                            string extraKey = $"ship_{i}_2";
-
-                            Vector4 uv1 = AssetManager.TextureRegions.TryGetValue(baseKey, out var u1) ? u1 : Vector4.Zero;
-                            Vector4 uv2 = AssetManager.TextureRegions.TryGetValue(extraKey, out var u2) ? u2 : Vector4.Zero;
-
-                            ImGui.PushID($"ship_btn_{i}");
-
+                            ImGui.PushID($"ship_uid_{id}");
                             System.Numerics.Vector2 screenPos = ImGui.GetCursorScreenPos();
-                            if (ImGui.Button("##blank_ship", new System.Numerics.Vector2(48, 48)))
+
+                            if (ImGui.Button("##blank", new System.Numerics.Vector2(48, 48)))
                             {
-                                SkinSet.Current.SelectedShipId = i;
+                                SkinSet.Current.SelectedShipId = id;
+                                configChanged = true;
                             }
 
-                            var drawList = ImGui.GetWindowDrawList();
-                            System.Numerics.Vector2 pMin = screenPos;
-                            System.Numerics.Vector2 pMax = new(screenPos.X + 48, screenPos.Y + 48);
+                            Vector4 uv1 = AssetManager.TextureRegions.TryGetValue($"ship_{id}_1", out var u1) ? u1 : Vector4.Zero;
+                            Vector4 uv2 = AssetManager.TextureRegions.TryGetValue($"ship_{id}_2", out var u2) ? u2 : Vector4.Zero;
 
+                            var drawList = ImGui.GetWindowDrawList();
                             uint c1 = ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(SkinSet.Current.Color1.X, SkinSet.Current.Color1.Y, SkinSet.Current.Color1.Z, SkinSet.Current.Color1.W));
                             uint c2 = ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(SkinSet.Current.Color2.X, SkinSet.Current.Color2.Y, SkinSet.Current.Color2.Z, SkinSet.Current.Color2.W));
 
-                            drawList.AddImage(openGlTexId, pMin, pMax, new System.Numerics.Vector2(uv1.X, uv1.Y), new System.Numerics.Vector2(uv1.Z, uv1.W), c1);
-                            drawList.AddImage(openGlTexId, pMin, pMax, new System.Numerics.Vector2(uv2.X, uv2.Y), new System.Numerics.Vector2(uv2.Z, uv2.W), c2);
+                            drawList.AddImage(openGlTexId, screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), new System.Numerics.Vector2(uv1.X, uv1.Y), new System.Numerics.Vector2(uv1.Z, uv1.W), c1);
+                            drawList.AddImage(openGlTexId, screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), new System.Numerics.Vector2(uv2.X, uv2.Y), new System.Numerics.Vector2(uv2.Z, uv2.W), c2);
 
-                            if (SkinSet.Current.SelectedShipId == i)
-                            {
-                                drawList.AddRect(pMin, pMax, ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(0.2f, 1f, 0.2f, 1f)), 0f, ImDrawFlags.None, 2f);
-                            }
+                            if (SkinSet.Current.SelectedShipId == id)
+                                drawList.AddRect(screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(0.2f, 1f, 0.2f, 1f)), 0f, ImDrawFlags.None, 2f);
 
                             ImGui.PopID();
-                            if (i % 5 != 0) ImGui.SameLine();
+                            ImGui.SameLine();
+                        }
+                        ImGui.NewLine();
+                        ImGui.EndTabItem();
+                    }
+
+                    // --- ВКЛАДКА ШАРОВ (НОВАЯ) ---
+                    if (ImGui.BeginTabItem("Balls"))
+                    {
+                        ImGui.Text("Select Ball Skin:");
+                        foreach (int id in SkinSet.AvailableBalls)
+                        {
+                            ImGui.PushID($"ball_uid_{id}");
+                            System.Numerics.Vector2 screenPos = ImGui.GetCursorScreenPos();
+
+                            if (ImGui.Button("##blank", new System.Numerics.Vector2(48, 48)))
+                            {
+                                SkinSet.Current.SelectedBallId = id;
+                                configChanged = true;
+                            }
+
+                            Vector4 uv1 = AssetManager.TextureRegions.TryGetValue($"ball_{id}_1", out var u1) ? u1 : Vector4.Zero;
+                            Vector4 uv2 = AssetManager.TextureRegions.TryGetValue($"ball_{id}_2", out var u2) ? u2 : Vector4.Zero;
+
+                            var drawList = ImGui.GetWindowDrawList();
+                            uint c1 = ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(SkinSet.Current.Color1.X, SkinSet.Current.Color1.Y, SkinSet.Current.Color1.Z, SkinSet.Current.Color1.W));
+                            uint c2 = ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(SkinSet.Current.Color2.X, SkinSet.Current.Color2.Y, SkinSet.Current.Color2.Z, SkinSet.Current.Color2.W));
+
+                            drawList.AddImage(openGlTexId, screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), new System.Numerics.Vector2(uv1.X, uv1.Y), new System.Numerics.Vector2(uv1.Z, uv1.W), c1);
+                            drawList.AddImage(openGlTexId, screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), new System.Numerics.Vector2(uv2.X, uv2.Y), new System.Numerics.Vector2(uv2.Z, uv2.W), c2);
+
+                            if (SkinSet.Current.SelectedBallId == id)
+                                drawList.AddRect(screenPos, new System.Numerics.Vector2(screenPos.X + 48, screenPos.Y + 48), ImGui.ColorConvertFloat4ToU32(new System.Numerics.Vector4(0.2f, 1f, 0.2f, 1f)), 0f, ImDrawFlags.None, 2f);
+
+                            ImGui.PopID();
+                            ImGui.SameLine();
                         }
                         ImGui.NewLine();
                         ImGui.EndTabItem();
@@ -239,19 +256,20 @@ internal class MainMenu
                         System.Numerics.Vector4 col1 = new(SkinSet.Current.Color1.X, SkinSet.Current.Color1.Y, SkinSet.Current.Color1.Z, SkinSet.Current.Color1.W);
                         System.Numerics.Vector4 col2 = new(SkinSet.Current.Color2.X, SkinSet.Current.Color2.Y, SkinSet.Current.Color2.Z, SkinSet.Current.Color2.W);
 
-                        if (ImGui.ColorEdit4("Primary Color", ref col1))
-                            SkinSet.Current.Color1 = new Vector4(col1.X, col1.Y, col1.Z, col1.W);
-
-                        if (ImGui.ColorEdit4("Secondary Color", ref col2))
-                            SkinSet.Current.Color2 = new Vector4(col2.X, col2.Y, col2.Z, col2.W);
+                        if (ImGui.ColorEdit4("Primary Color", ref col1)) { SkinSet.Current.Color1 = new Vector4(col1.X, col1.Y, col1.Z, col1.W); configChanged = true; }
+                        if (ImGui.ColorEdit4("Secondary Color", ref col2)) { SkinSet.Current.Color2 = new Vector4(col2.X, col2.Y, col2.Z, col2.W); configChanged = true; }
 
                         ImGui.EndTabItem();
                     }
                     ImGui.EndTabBar();
                 }
+
+                if (configChanged)
+                {
+                    SkinSet.Current.SaveConfig(); // Автосохранение при любых изменениях
+                }
                 ImGui.TreePop();
             }
-
 
 
             // Кнопки запуска

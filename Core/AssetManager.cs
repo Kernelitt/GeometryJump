@@ -14,8 +14,17 @@ internal static class AssetManager
     public static int TextureAtlasId { get; private set; }
     public static Dictionary<string, Vector4> TextureRegions { get; private set; } = new();
 
-    public static void LoadTextureAtlas(string[] texturePaths)
+    public static void LoadTextureAtlas(string rootDirectoryPath)
     {
+        if (!Directory.Exists(rootDirectoryPath))
+        {
+            System.Console.WriteLine($"[AssetManager] Ошибка: Директория {rootDirectoryPath} не существует!");
+            return;
+        }
+
+        // Сканируем папку и все подпапки на наличие PNG файлов
+        string[] texturePaths = Directory.GetFiles(rootDirectoryPath, "*.png", SearchOption.AllDirectories);
+
         int atlasWidth = 2048;
         int currentX = 0;
         int currentY = 0;
@@ -25,7 +34,6 @@ internal static class AssetManager
 
         foreach (var path in texturePaths)
         {
-            if (!File.Exists(path)) continue;
             using var stream = File.OpenRead(path);
             var info = ImageInfo.FromStream(stream);
             imageInfos.Add((path, info.Value.Width, info.Value.Height));
@@ -72,12 +80,12 @@ internal static class AssetManager
                 Array.Copy(image.Data, srcOffset, atlasData, destOffset, img.Width * 4);
             }
 
-            // ИСПРАВЛЕНО: Расчет UV-координат строго по реальной ширине (img.Width) и высоте (img.Height)
             float uMin = (float)currentX / atlasWidth;
             float vMin = (float)currentY / atlasHeight;
             float uMax = (float)(currentX + img.Width) / atlasWidth;
             float vMax = (float)(currentY + img.Height) / atlasHeight;
 
+            // ИСПРАВЛЕНО: Ключом становится ТОЛЬКО имя файла без путей и расширения
             string key = Path.GetFileNameWithoutExtension(img.Path);
             TextureRegions[key] = new Vector4(uMin, vMin, uMax, vMax);
 
@@ -93,7 +101,6 @@ internal static class AssetManager
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
     }
-
 
     public static byte[] GetAudioData(string path)
     {
